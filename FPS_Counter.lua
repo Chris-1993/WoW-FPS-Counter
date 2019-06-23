@@ -38,7 +38,7 @@ local DEFAULT_CHARACTER_SETTINGS = {
 }
 
 local DEFAULT_GENERAL_SETTINGS = {
-  showTooltip = 0,
+  showTooltip = true, -- TODO: disable mouse input on no tooltip and no modifier key pressed
   refreshInterval = 0.5,
   useTextFormat = false,
   textFormat = "FPS: "..CUSTOM_STRING_FPS_PATTERN,
@@ -784,9 +784,15 @@ function OptionsPanel:AddColorPicker(aSetting, aText, aTooltip, aShowAlpha, aWid
     -- setup scripts
     local function SaveValue(self)
       local val = Utils:Clamp(0, Utils:Round(self:GetNumber(), 2), 1)
-      Settings[aSetting][aTargetVal] = val
+      -- assign new table, so that the setter will be triggered
+      -- workaround should be okay for such a rare usecase
+      local c = Utils:TableShallowCopy(Settings[aSetting])
+      c[aTargetVal] = val
+      Settings[aSetting] = c
+      
       self:SetNumber(val)
       self:ClearFocus()
+      
       InvokeCallback(aCallback)
     end
     editBox:SetScript('OnEnterPressed', SaveValue)
