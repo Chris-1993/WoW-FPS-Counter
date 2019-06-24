@@ -17,7 +17,7 @@ local CUSTOM_STRING_FPS_PATTERN = "$fps"
 -------------------------
 
 local Strings = {}
-Strings.welcomeMessage = [[FPS Counter: |cffffff00Welcome to FPS Counter!
+Strings.welcomeMessage = [[|cffffff00Welcome to FPS Counter!
 The addon settings can be found in the interface options. Alternatively they can be opened directly with a right click on the FPS counter while holding the "Alt" key.|r]]
 Strings.FPS_COUNTER_TOOLTIP_LINE_1 = "[Hold Alt + Left Mouse Button] drag frame"
 Strings.FPS_COUNTER_TOOLTIP_LINE_2 = "[Alt + Right Mouse Button] open settings"
@@ -38,7 +38,7 @@ local DEFAULT_CHARACTER_SETTINGS = {
 }
 
 local DEFAULT_GENERAL_SETTINGS = {
-  showTooltip = true, -- TODO: disable mouse input on no tooltip and no modifier key pressed
+  showTooltip = true,
   refreshInterval = 0.5,
   useTextFormat = false,
   textFormat = "FPS: "..CUSTOM_STRING_FPS_PATTERN,
@@ -195,7 +195,7 @@ function Main:PLAYER_LOGIN()
   -- show welcome message
   if not Settings.welcomeMessageShown then
     Settings.welcomeMessageShown = true
-    print(Strings.welcomeMessage)
+    Utils:Print(Strings.welcomeMessage)
   end
 end
 
@@ -213,6 +213,7 @@ end
 function Main:MODIFIER_STATE_CHANGED(aKey, aNewState)
   if aKey == 'LALT' then
     Modifier_Key_Active = aNewState == 1
+    fpsCounter:EnableMouse(Modifier_Key_Active or Settings.showTooltip)
     fpsCounter:SetMovable(Modifier_Key_Active)
     if not state then
       fpsCounter:StopMovingOrSizing()
@@ -289,6 +290,9 @@ function Main:UpdateSettings(aRecalculateText)
   local _, relativeTo = fpsCounter:GetPoint()
   fpsCounter:ClearAllPoints()
   fpsCounter:SetPoint(Settings.pivot, relativeTo, Settings.anchor, Settings.offsetX, Settings.offsetY)
+  
+  -- mouse input
+  fpsCounter:EnableMouse(Settings.showTooltip)
   
   -- font
   local flags = {}
@@ -861,6 +865,10 @@ end
 -------------------------
 --       Utils
 -------------------------
+
+function Utils:Print(aMsg)
+  print(string.format("|cff4fd0ff%s:|r %s", ADDON_DISPLAY_NAME, aMsg))
+end
 
 function Utils:GetResolution()
   local x, y = strsplit('x', Display_DisplayModeDropDown:windowedmode() and GetCVar('gxWindowedResolution') or GetCVar('gxFullscreenResolution'))
