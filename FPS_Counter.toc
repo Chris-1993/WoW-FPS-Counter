@@ -1,4 +1,4 @@
-## Interface: 80100
+## Interface: 80200
 ## Title: FPS Counter
 ## Author: ewyrmn
 ## Version: 0.1.r@project-revision@
