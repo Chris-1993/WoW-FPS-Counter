@@ -10,6 +10,7 @@ local Utils = {}
 
 local ADDON_DISPLAY_NAME = "FPS Counter"
 local COLOR_YELLOW_RGB = { 1, 0.85, 0.02 }
+local COLOR_YELLOW_HEX = 'ffffd905'
 local CUSTOM_STRING_FPS_PATTERN = "$fps"
 
 -------------------------
@@ -17,8 +18,15 @@ local CUSTOM_STRING_FPS_PATTERN = "$fps"
 -------------------------
 
 local Strings = {}
-Strings.welcomeMessage = [[|cffffff00Welcome to FPS Counter!
+Strings.WELCOME_MESSAGE = [[|cffffff00Welcome to FPS Counter!
 The addon settings can be found in the interface options. Alternatively they can be opened directly with a right click on the FPS counter while holding the "Alt" key.|r]]
+Strings.ISSUE_TRACKER_HINT = string.format([[
+|c%sReport bugs to:|r
+https://www.curseforge.com/wow/addons/fps-counter/issues
+]], COLOR_YELLOW_HEX)
+Strings.INVALID_CUSTOM_TEXT = string.format(
+  "|cffff0000The custom text does not contain the keyword |cffffff00%s|cffff0000, which gets replaced with the current framerate.|r",
+  CUSTOM_STRING_FPS_PATTERN)
 Strings.FPS_COUNTER_TOOLTIP_LINE_1 = "[Hold Alt + Left Mouse Button] drag frame"
 Strings.FPS_COUNTER_TOOLTIP_LINE_2 = "[Alt + Right Mouse Button] open settings"
 Strings.TOOLTIP_ANCHOR = "Sets the anchor point relative to the screen."
@@ -170,6 +178,7 @@ Main.timeSinceLastUpdate = 0
 local fpsCounter = CreateFrame('Frame', 'fpsCounter')
 fpsCounter.text = nil
 fpsCounter.textFormat = nil
+fpsCounter.decimals = nil
 fpsCounter.isMoving = false
 
 function Main:PLAYER_LOGIN()
@@ -195,7 +204,7 @@ function Main:PLAYER_LOGIN()
   -- show welcome message
   if not Settings.welcomeMessageShown then
     Settings.welcomeMessageShown = true
-    Utils:Print(Strings.welcomeMessage)
+    Utils:Print(Strings.WELCOME_MESSAGE)
   end
 end
 
@@ -309,14 +318,18 @@ function Main:UpdateSettings(aRecalculateText)
   fpsCounter.text:SetJustifyH(Settings.textAlignment)
   
   if aRecalculateText then
+    -- decimals
+    fpsCounter.decimals = Settings.decimals
+    
     -- text format
     local textFormat = nil
     if Settings.useTextFormat then
-      -- TODO: error message when pattern not found
-      fpsCounter.textFormat = Settings.textFormat
-    else
-      fpsCounter.textFormat = nil
+      textFormat = Settings.textFormat 
+      if fpsCounter.textFormat ~= textFormat and not strfind(textFormat, CUSTOM_STRING_FPS_PATTERN) then
+          Utils:Print(Strings.INVALID_CUSTOM_TEXT)
+      end
     end
+    fpsCounter.textFormat = textFormat
     
     -- adjust fontstring width
     fpsCounter:SetSize(999, 999)
@@ -336,8 +349,8 @@ function Main:UpdateSettings(aRecalculateText)
 end
 
 function Main:UpdateFramerate()
-  local fps = Settings.decimals > 0
-    and (("%%.%df"):format(Settings.decimals)):format(GetFramerate())
+  local fps = fpsCounter.decimals > 0
+    and (("%%.%df"):format(fpsCounter.decimals)):format(GetFramerate())
     or Round(GetFramerate())
     if fpsCounter.textFormat then
       fps = fpsCounter.textFormat:gsub(CUSTOM_STRING_FPS_PATTERN, fps)
@@ -445,6 +458,11 @@ function OptionsPanel:Init()
   self:AddSlider('offsetX', "Offset X", nil, sliderMinCenteredFrameX, sliderMaxCenteredFrameX, 0, widgetSettings)
   self:AddSlider('offsetY', "Offset Y", nil, sliderMinCenteredFrameY, sliderMaxCenteredFrameY, 0, widgetSettings)
   
+  -- bug report hint
+  local f = self:AddText(Strings.ISSUE_TRACKER_HINT, 11, 400, widgetSettings)
+  f:ClearAllPoints()
+  f:SetPoint('BOTTOMLEFT', 10, 0)
+  
   InterfaceOptions_AddCategory(self.frame)
 end
 
@@ -471,6 +489,24 @@ function OptionsPanel:AddHeadline(aText, aWidgetSettings)
   fs:SetText(aText)
   
   self:IncreasePosY(aWidgetSettings, fs, 10)
+  return fs
+end
+
+function OptionsPanel:AddText(aText, aFontSize, aWidth, aWidgetSettings)
+  -- create frame
+  local fs = aWidgetSettings.parent:CreateFontString(nil, 'OVERLAY', GameFontNormal)
+  fs:SetScale(aWidgetSettings.scale)
+  fs:SetWidth(aWidth)
+  fs:SetPoint(aWidgetSettings.point, aWidgetSettings.posX, aWidgetSettings.posY)
+  fs:SetJustifyV('TOP')
+  fs:SetJustifyH('LEFT')
+  fs:SetFont('Fonts\\FRIZQT__.TTF', aFontSize, 'OUTLINE')
+  fs:SetText(aText)
+  
+  -- increase pos for next frame
+  self:IncreasePosY(aWidgetSettings, fs, 10)
+  
+  self:OnFrameCreated(fs)
   return fs
 end
 
