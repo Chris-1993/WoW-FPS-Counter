@@ -1,7 +1,7 @@
 ## Interface: 80200
 ## Title: FPS Counter
 ## Author: ewyrmn
-## Version: 0.1.r@project-revision@
+## Version: 1.0.r@project-revision@
 ## SavedVariables: FPSCOUNTER_GENERAL_SETTINGS_ACCOUNT, FPSCOUNTER_ACCOUNT_SETTINGS
 ## SavedVariablesPerCharacter: FPSCOUNTER_GENERAL_SETTINGS_CHARACTER, FPSCOUNTER_CHARACTER_SETTINGS
 
