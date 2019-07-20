@@ -24,6 +24,7 @@ Strings.ISSUE_TRACKER_HINT = string.format([[
 |c%sReport bugs to:|r
 https://www.curseforge.com/wow/addons/fps-counter/issues
 ]], COLOR_YELLOW_HEX)
+Strings.SLASH_COMMANDS = [[|cfffff17c/fpscounter |cffb3b3b3- |rtoggle visibility]]
 Strings.INVALID_CUSTOM_TEXT = string.format(
   "|cffff0000The custom text does not contain the keyword |cffffff00%s|cffff0000, which gets replaced with the current framerate.|r",
   CUSTOM_STRING_FPS_PATTERN)
@@ -46,6 +47,7 @@ local DEFAULT_CHARACTER_SETTINGS = {
 }
 
 local DEFAULT_GENERAL_SETTINGS = {
+  show = true,
   showTooltip = true,
   refreshInterval = 0.5,
   useTextFormat = false,
@@ -66,6 +68,7 @@ local DEFAULT_GENERAL_SETTINGS = {
 }
 
 local TEXT_CALC_RELATED_SETTINGS = {
+  'show',
   'useTextFormat',
   'textFormat',
   'decimals',
@@ -168,6 +171,16 @@ function Settings:EndBulkEdit()
 end
 
 -------------------------
+--      COMMANDS
+-------------------------
+
+SLASH_FPSCOUNTER1 = "/fpscounter"
+SLASH_FPSCOUNTER2 = "/fps_counter"
+SlashCmdList['FPSCOUNTER'] = function(aMsg)
+  Main:ToggleFramerate()
+end
+
+-------------------------
 --      Main Part
 -------------------------
 
@@ -176,6 +189,7 @@ Main:RegisterEvent('PLAYER_LOGIN')
 Main.timeSinceLastUpdate = 0
 
 local fpsCounter = CreateFrame('Frame', 'fpsCounter')
+fpsCounter.show = nil
 fpsCounter.text = nil
 fpsCounter.textFormat = nil
 fpsCounter.decimals = nil
@@ -291,7 +305,20 @@ function Main:SetupFpsCounter()
   fpsCounter.text:SetJustifyV('TOP')
 end
 
+function Main:ToggleFramerate(aEnabled)
+  Settings.show = aEnabled ~= nil and aEnabled or not Settings.show
+  Utils:Print('Framerate is now '..(Settings.show and 'visible' or 'hidden'))
+end
+
 function Main:UpdateSettings(aRecalculateText)
+  -- show
+  fpsCounter.show = Settings.show
+  if not fpsCounter.show then
+    fpsCounter:Hide()
+    return
+  end
+  fpsCounter:Show()
+  
   -- strata
   fpsCounter:SetFrameStrata(Settings.strata)
   
@@ -349,12 +376,15 @@ function Main:UpdateSettings(aRecalculateText)
 end
 
 function Main:UpdateFramerate()
+  if not fpsCounter.show then
+    return
+  end
   local fps = fpsCounter.decimals > 0
     and (("%%.%df"):format(fpsCounter.decimals)):format(GetFramerate())
     or Round(GetFramerate())
-    if fpsCounter.textFormat then
-      fps = fpsCounter.textFormat:gsub(CUSTOM_STRING_FPS_PATTERN, fps)
-    end
+  if fpsCounter.textFormat then
+    fps = fpsCounter.textFormat:gsub(CUSTOM_STRING_FPS_PATTERN, fps)
+  end
   fpsCounter.text:SetText(fps)
 end
 
@@ -429,7 +459,9 @@ function OptionsPanel:Init()
   local sliderMaxCenteredFrameY = math.ceil(resHeight / 2)
   local sliderMinCenteredFrameY = sliderMaxCenteredFrameY * -1
   
+  -- general
   self:AddHeadline("General", widgetSettings)
+  self:AddCheckButton('show', "Show framerate", nil, widgetSettings)
   self:AddCheckButton('useCharacterSettings', "Save settings only \nfor this character", nil, widgetSettings, function() Settings:OnSerializationTypeChanged() end)
   self:AddCheckButton('showTooltip', "Show tooltip on hover", nil, widgetSettings)
   self:AddSlider('refreshInterval', "Refresh Interval", nil, 0.01, 2, 2, widgetSettings)
@@ -438,6 +470,7 @@ function OptionsPanel:Init()
   widgetSettings.posY = widgetSettings.posY + 7
   self:AddEditBox('textFormat', nil, nil, false, 145, widgetSettings)
   
+  -- font
   widgetSettings.posX = widgetSettings.posX + 190
   widgetSettings.posY = DEFAULT_WIDGET_SETTINGS.posY
   self:AddHeadline("Font", widgetSettings)
@@ -448,6 +481,7 @@ function OptionsPanel:Init()
   self:AddSlider('fontSize', "Font Size", nil, 1, 150, 0, widgetSettings)
   self:AddColorPicker('fontColor', "Font Color", nil, true, widgetSettings)
   
+  -- positioning
   widgetSettings.posX = widgetSettings.posX + 230
   widgetSettings.posY = DEFAULT_WIDGET_SETTINGS.posY
   self:AddHeadline("Positioning", widgetSettings)
@@ -457,6 +491,12 @@ function OptionsPanel:Init()
   self:AddDropdown('pivot', "Zero point", Strings.TOOLTIP_PIVOT, dropdownMenuFramePoint, 100, false, widgetSettings)
   self:AddSlider('offsetX', "Offset X", nil, sliderMinCenteredFrameX, sliderMaxCenteredFrameX, 0, widgetSettings)
   self:AddSlider('offsetY', "Offset Y", nil, sliderMinCenteredFrameY, sliderMaxCenteredFrameY, 0, widgetSettings)
+  
+  -- slash commands
+  widgetSettings.posX = DEFAULT_WIDGET_SETTINGS.posX
+  widgetSettings.posY = -325
+  self:AddHeadline("Commands", widgetSettings)
+  self:AddText(Strings.SLASH_COMMANDS, 13, 400, widgetSettings)
   
   -- bug report hint
   local f = self:AddText(Strings.ISSUE_TRACKER_HINT, 11, 400, widgetSettings)
