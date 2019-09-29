@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 11302
 ## Title: FPS Counter
 ## Author: ewyrmn
 ## Version: 1.1.1.r@project-revision@
