@@ -30,6 +30,7 @@ Strings.INVALID_CUSTOM_TEXT = string.format(
   CUSTOM_STRING_FPS_PATTERN)
 Strings.FPS_COUNTER_TOOLTIP_LINE_1 = "[Hold Alt + Left Mouse Button] drag frame"
 Strings.FPS_COUNTER_TOOLTIP_LINE_2 = "[Alt + Right Mouse Button] open settings"
+Strings.SHOW_WHEN_UI_HIDDEN = "Refers to the \"Toggle User Interface\" key bind (by default bind to Alt + Z)."
 Strings.TOOLTIP_ANCHOR = "Sets the anchor point relative to the screen."
 Strings.TOOLTIP_PIVOT = [[Sets the zero point of the frame.
 If for example the value is set to "Top Left", the frame will grow to the right and bottom.]]
@@ -48,6 +49,8 @@ local DEFAULT_CHARACTER_SETTINGS = {
 
 local DEFAULT_GENERAL_SETTINGS = {
   show = true,
+  showInCutscenes = true,
+  showWhenUIHidden = false,
   showTooltip = true,
   refreshInterval = 0.5,
   useTextFormat = false,
@@ -68,7 +71,6 @@ local DEFAULT_GENERAL_SETTINGS = {
 }
 
 local TEXT_CALC_RELATED_SETTINGS = {
-  'show',
   'useTextFormat',
   'textFormat',
   'decimals',
@@ -177,7 +179,11 @@ end
 SLASH_FPSCOUNTER1 = "/fpscounter"
 SLASH_FPSCOUNTER2 = "/fps_counter"
 SlashCmdList['FPSCOUNTER'] = function(aMsg)
-  Main:ToggleFramerate()
+  Settings.show = aEnabled ~= nil and aEnabled or not Settings.show
+  Utils:Print('Framerate is now '..(Settings.show and 'visible' or 'hidden'))
+  if InterfaceOptionsFrame:IsShown() then
+    OptionsPanel:RefreshAllValues()
+  end
 end
 
 -------------------------
@@ -188,7 +194,9 @@ Main:SetScript('OnEvent', function(self, event, ...) self[event](self, ...) end)
 Main:RegisterEvent('PLAYER_LOGIN')
 Main.timeSinceLastUpdate = 0
 
-local fpsCounter = CreateFrame('Frame', 'fpsCounter')
+local isInCutscene = nil
+
+local fpsCounter = CreateFrame('FRAME', 'fpsCounter')
 fpsCounter.show = nil
 fpsCounter.text = nil
 fpsCounter.textFormat = nil
@@ -201,7 +209,12 @@ function Main:PLAYER_LOGIN()
   
   -- register events
   self:RegisterEvent('MODIFIER_STATE_CHANGED')
+  self:RegisterEvent('CINEMATIC_START')
+  self:RegisterEvent('CINEMATIC_STOP')
+  isInCutscene = InCinematic()
   self:SetScript('OnUpdate', self.OnUpdate)
+  UIParent:HookScript('OnShow', self.UpdateVisibility)
+  UIParent:HookScript('OnHide', self.UpdateVisibility)
   
   -- init settings
   Settings:Init()
@@ -231,6 +244,16 @@ function Main:OnUpdate(aElapsed)
   
   -- update fps counter
   self:UpdateFramerate()
+end
+
+function Main:CINEMATIC_START()
+  isInCutscene = true
+  self:UpdateVisibility()
+end
+
+function Main:CINEMATIC_STOP()
+  isInCutscene = false
+  self:UpdateVisibility()
 end
 
 function Main:MODIFIER_STATE_CHANGED(aKey, aNewState)
@@ -305,19 +328,9 @@ function Main:SetupFpsCounter()
   fpsCounter.text:SetJustifyV('TOP')
 end
 
-function Main:ToggleFramerate(aEnabled)
-  Settings.show = aEnabled ~= nil and aEnabled or not Settings.show
-  Utils:Print('Framerate is now '..(Settings.show and 'visible' or 'hidden'))
-end
-
 function Main:UpdateSettings(aRecalculateText)
-  -- show
-  fpsCounter.show = Settings.show
-  if not fpsCounter.show then
-    fpsCounter:Hide()
-    return
-  end
-  fpsCounter:Show()
+  -- visibility
+  self:UpdateVisibility()
   
   -- strata
   fpsCounter:SetFrameStrata(Settings.strata)
@@ -372,6 +385,21 @@ function Main:UpdateSettings(aRecalculateText)
     
     -- update text
     self:UpdateFramerate()
+  end
+end
+
+function Main:UpdateVisibility()
+  local newVal = Settings.show 
+    and (not isInCutscene or Settings.showInCutscenes)
+    and (isInCutscene or UIParent:IsShown() or Settings.showWhenUIHidden)
+  
+  if fpsCounter.show ~= newVal then
+    fpsCounter.show = newVal
+    if newVal then
+      fpsCounter:Show()
+    else
+      fpsCounter:Hide()
+    end
   end
 end
 
@@ -462,6 +490,15 @@ function OptionsPanel:Init()
   -- general
   self:AddHeadline("General", widgetSettings)
   self:AddCheckButton('show', "Show framerate", nil, widgetSettings)
+  widgetSettings.scale = DEFAULT_WIDGET_SETTINGS.scale * 0.8
+  widgetSettings.posX = widgetSettings.posX + 15
+  widgetSettings.posY = widgetSettings.posY - 11
+  self:AddCheckButton('showInCutscenes', "Show in cutscenes", nil, widgetSettings)
+  widgetSettings.posY = widgetSettings.posY + 5
+  self:AddCheckButton('showWhenUIHidden', "Show when UI is hidden", Strings.SHOW_WHEN_UI_HIDDEN, widgetSettings)
+  widgetSettings.scale = DEFAULT_WIDGET_SETTINGS.scale
+  widgetSettings.posX = widgetSettings.posX - 15
+  widgetSettings.posY = widgetSettings.posY + 25
   self:AddCheckButton('useCharacterSettings', "Save settings only \nfor this character", nil, widgetSettings, function() Settings:OnSerializationTypeChanged() end)
   self:AddCheckButton('showTooltip', "Show tooltip on hover", nil, widgetSettings)
   self:AddSlider('refreshInterval', "Refresh Interval", nil, 0.01, 2, 2, widgetSettings)
@@ -494,7 +531,7 @@ function OptionsPanel:Init()
   
   -- slash commands
   widgetSettings.posX = DEFAULT_WIDGET_SETTINGS.posX
-  widgetSettings.posY = -325
+  widgetSettings.posY = -375
   self:AddHeadline("Commands", widgetSettings)
   self:AddText(Strings.SLASH_COMMANDS, 13, 400, widgetSettings)
   
@@ -755,6 +792,7 @@ function OptionsPanel:AddDropdown(aSetting, aText, aTooltip, aMenuList, aWidth, 
         
         -- refresh text
         UIDropDownMenu_SetText(dropdown, getSettingValueDisplayName(aMenuList, self.value))
+        UIDropDownMenu_SetSelectedValue(dropdown, self.value)
         
         -- callback
         InvokeCallback(aCallback)
@@ -762,6 +800,8 @@ function OptionsPanel:AddDropdown(aSetting, aText, aTooltip, aMenuList, aWidth, 
       
       UIDropDownMenu_AddButton(info)
     end
+    local val = Settings[aSetting]
+    UIDropDownMenu_SetSelectedValue(dropdown, aIsBoolean and (val and 1 or 0) or val)
   end, '', 1, aWidth)
   
   -- set tooltip
