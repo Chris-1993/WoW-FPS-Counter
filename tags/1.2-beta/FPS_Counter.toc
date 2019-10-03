@@ -1,0 +1,8 @@
+## Interface: 80205
+## Title: FPS Counter
+## Author: ewyrmn
+## Version: 1.2.r@project-revision@
+## SavedVariables: FPSCOUNTER_GENERAL_SETTINGS_ACCOUNT, FPSCOUNTER_ACCOUNT_SETTINGS
+## SavedVariablesPerCharacter: FPSCOUNTER_GENERAL_SETTINGS_CHARACTER, FPSCOUNTER_CHARACTER_SETTINGS
+
+FPS_Counter.lua
