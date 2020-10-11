@@ -987,7 +987,7 @@ function Utils:Print(aMsg)
 end
 
 function Utils:GetResolution()
-  local x, y = strsplit('x', Display_DisplayModeDropDown:windowedmode() and GetCVar('gxWindowedResolution') or GetCVar('gxFullscreenResolution'))
+  local x, y = strsplit('x', Display_DisplayModeDropDown:windowedmode() and GetCVar('gxWindowedResolution') or ({GetScreenResolutions()})[GetCurrentResolution() + 1])
   return tonumber(x), tonumber(y)
 end
 
