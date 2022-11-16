@@ -203,7 +203,7 @@ fpsCounter.textFormat = nil
 fpsCounter.decimals = nil
 fpsCounter.isMoving = false
 
-function Main:PLAYER_LOGIN()
+function Main:PLAYER_LOGIN()  
   self:UnregisterEvent('PLAYER_LOGIN')
   self['PLAYER_LOGIN'] = nil
   
@@ -321,7 +321,7 @@ function Main:SetupFpsCounter()
   end)
   
   -- create fontstring
-  fpsCounter.text = fpsCounter:CreateFontString(nil, 'OVERLAY', GameFontNormal)
+  fpsCounter.text = fpsCounter:CreateFontString(nil, 'OVERLAY', nil)
   fpsCounter.text:ClearAllPoints()
   fpsCounter.text:SetPoint('TOPLEFT', fpsCounter)
   fpsCounter.text:SetPoint('BOTTOMRIGHT', fpsCounter)
@@ -558,7 +558,7 @@ function OptionsPanel:Show()
 end
 
 function OptionsPanel:AddHeadline(aText, aWidgetSettings)
-  local fs = aWidgetSettings.parent:CreateFontString(nil, 'OVERLAY', GameFontNormal)
+  local fs = aWidgetSettings.parent:CreateFontString(nil, 'OVERLAY', nil)
   fs:SetPoint(aWidgetSettings.point, aWidgetSettings.posX, aWidgetSettings.posY)
   fs:SetScale(aWidgetSettings.scale)
   fs:SetFont('Fonts\\FRIZQT__.TTF', 18, 'OUTLINE')
@@ -571,7 +571,7 @@ end
 
 function OptionsPanel:AddText(aText, aFontSize, aWidth, aWidgetSettings)
   -- create frame
-  local fs = aWidgetSettings.parent:CreateFontString(nil, 'OVERLAY', GameFontNormal)
+  local fs = aWidgetSettings.parent:CreateFontString(nil, 'OVERLAY', nil)
   fs:SetScale(aWidgetSettings.scale)
   fs:SetWidth(aWidth)
   fs:SetPoint(aWidgetSettings.point, aWidgetSettings.posX, aWidgetSettings.posY)
@@ -665,7 +665,7 @@ function OptionsPanel:AddEditBox(aSetting, aText, aTooltip, aIsNumeric, aWidth, 
   
   -- add fontstring
   if not Utils:StrIsNilOrEmpty(aText) then
-    editBox.fontString = editBox:CreateFontString(id..'fs', 'OVERLAY', GameFontNormal)
+    editBox.fontString = editBox:CreateFontString(id..'fs', 'OVERLAY', nil)
     editBox.fontString:SetPoint('TOPLEFT', editBox, -3, 10)
     editBox.fontString:SetFont('Fonts\\FRIZQT__.TTF', 12)
     editBox.fontString:SetText(aText)
@@ -767,7 +767,7 @@ function OptionsPanel:AddDropdown(aSetting, aText, aTooltip, aMenuList, aWidth, 
   UIDropDownMenu_SetText(dropdown, getSettingValueDisplayName(aMenuList, Settings[aSetting], aIsBoolean))
   
   -- add fontstring
-  dropdown.fontString = dropdown:CreateFontString(id..'fs', 'OVERLAY', GameFontNormal)
+  dropdown.fontString = dropdown:CreateFontString(id..'fs', 'OVERLAY', nil)
   dropdown.fontString:SetPoint('TOPLEFT', dropdown, 20, 10)
   dropdown.fontString:SetFont('Fonts\\FRIZQT__.TTF', 12)
   dropdown.fontString:SetText(aText)
@@ -836,7 +836,7 @@ function OptionsPanel:AddColorPicker(aSetting, aText, aTooltip, aShowAlpha, aWid
   frame:SetScale(aWidgetSettings.scale)
   
   -- add fontstring
-  frame.fontString = frame:CreateFontString(id..'fs', 'OVERLAY', GameFontNormal)
+  frame.fontString = frame:CreateFontString(id..'fs', 'OVERLAY', nil)
   frame.fontString:SetPoint('TOPLEFT', frame, 5, 10)
   frame.fontString:SetFont('Fonts\\FRIZQT__.TTF', 12)
   frame.fontString:SetText(aText)
@@ -925,7 +925,7 @@ function OptionsPanel:AddColorPicker(aSetting, aText, aTooltip, aShowAlpha, aWid
     end
     
     -- add fontstring
-    editBox.fontString = frame:CreateFontString(id..'eb'..aTargetVal..'fs', 'OVERLAY', GameFontNormal)
+    editBox.fontString = frame:CreateFontString(id..'eb'..aTargetVal..'fs', 'OVERLAY', nil)
     editBox.fontString:SetPoint('BOTTOM', editBox, 0, -3)
     editBox.fontString:SetFont('Fonts\\FRIZQT__.TTF', 10)
     editBox.fontString:SetTextColor(0.8, 0.8, 0.8, 1)
@@ -987,8 +987,8 @@ function Utils:Print(aMsg)
 end
 
 function Utils:GetResolution()
-  local x, y = strsplit('x', Display_DisplayModeDropDown:windowedmode() and GetCVar('gxWindowedResolution') or ({GetScreenResolutions()})[GetCurrentResolution() + 1])
-  return tonumber(x), tonumber(y)
+  local parentScale = UIParent:GetEffectiveScale()
+  return GetScreenWidth() * parentScale, GetScreenHeight() * parentScale
 end
 
 function Utils:TableShallowCopy(aTable)
